@@ -4,13 +4,13 @@
 
 ### Images for stimulus
 If you want to get all images and videos for stimulus,
-please contact to <ddang8jh@gmail.com>
+please contact to <lhw4846@smu.ac.kr>
 
 ### 🚀Quick setup
 
 ```bash
 # clone project
-git clone https://github.com/DimensionSTP/eeg.git
+git clone https://github.com/ct-smu/eeg-student.git
 cd eeg
 
 # [OPTIONAL] create conda environment
