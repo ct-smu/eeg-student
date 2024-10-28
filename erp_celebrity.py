@@ -31,6 +31,7 @@ def erp_celebrity(
     event_file: str = "",
     data_file_path: str = "",
 ) -> Optional[Tuple[str, str]]:
+    # Run task
     if not mode=="analysis":
         today = str(datetime.now().date())
         if not os.path.exists(f"./data/{today}"):
@@ -67,6 +68,7 @@ def erp_celebrity(
     if mode=="task":
         return event_file, data_file_path
 
+    # Analyze EEG
     analyze_eeg = AnalyzeEEG(channels=channels, fs=fs)
     eeg, eeg_times, avg_evoked_list, times_list = analyze_eeg.analyze_erp(
         eeg_filename=data_file_path,
@@ -79,6 +81,7 @@ def erp_celebrity(
         tmax=tmax,
     )
 
+    # Plot EEG
     plot_eeg = PlotEEG(
         channels=channels,
         result_dir=result_dir,
@@ -106,6 +109,7 @@ def erp_celebrity(
     else:
         raise ValueError("Invalid sex type")
 
+    # Recommend celebrity
     recommend_celebrity(
         avg_evoked_list=avg_evoked_list,
         times_list=times_list,
