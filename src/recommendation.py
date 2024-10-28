@@ -5,42 +5,14 @@ import numpy as np
 import pandas as pd
 
 
-def recommend_combination(
-    avg_evoked_list: List[np.ndarray], 
-    times_list: List[np.ndarray], 
-    channels: List[str], 
-    image_folder: str, 
-    clothes_type: str,
-) -> None:
-    max_values_per_channel = []
-
-    top_recommendations = []
-
-    top_indices = [t[1] + 1 for t in top_recommendations]
-    if clothes_type == "bottoms":
-        for index in top_indices:
-            print(f"당신이 끌리는 하의 조합은 {index}번 하의입니다.")
-            image_filename = f"{image_folder}/B{index}.jpg"
-            image = Image.open(image_filename)
-            image.show()
-    elif clothes_type == "shoes":
-        for index in top_indices:
-            print(f"당신이 끌리는 신발의 조합은 {index}번 신발입니다.")
-            image_filename = f"{image_folder}/S{index}.jpg"
-            image = Image.open(image_filename)
-            image.show()
-    else:
-        raise ValueError("Invalid clothes type")
-
-
 def recommend_celebrity(
-    avg_evoked_list: List[np.ndarray], 
-    times_list: List[np.ndarray], 
-    channels: List[str], 
-    sex: str, 
-    image_folder: str, 
-    result_dir: str, 
-    screen_width: int, 
+    avg_evoked_list: List[np.ndarray],
+    times_list: List[np.ndarray],
+    channels: List[str],
+    sex: str,
+    image_folder: str,
+    result_dir: str,
+    screen_width: int,
     screen_height: int,
 ) -> None:
     male_celebrities = [
@@ -70,9 +42,43 @@ def recommend_celebrity(
         "윤아"
     ]
     max_values_per_channel = []
+    for channel_idx in range(len(channels)):
+        max_values = []
+        for num_images in range(len(times_list)):
+            selected_indices = [
+                index
+                for index, value in enumerate(times_list[num_images])
+                if 0.1 <= value <= 0.5
+            ]
+            start_index = selected_indices[0]
+            end_index = selected_indices[-1]
 
-    sorted_top_values_and_indices = []
+            max_value = max(
+                avg_evoked_list[num_images][channel_idx][start_index : end_index + 1]
+            )
+            max_values.append(max_value)
+        max_values_per_channel.append(max_values)
 
+    indices_of_largest_values_per_channel = []
+    for channel in range(len(max_values_per_channel)):
+        indices_of_largest_values = sorted(
+            range(len(max_values_per_channel[channel])),
+            key=lambda i: max_values_per_channel[channel][i],
+            reverse=True,
+        )[:3]
+        largest_values = [
+            max_values_per_channel[channel][i] for i in indices_of_largest_values
+        ]
+        top_values_and_indices = [
+            (value, index)
+            for value, index in zip(largest_values, indices_of_largest_values)
+        ]
+        indices_of_largest_values_per_channel.append(top_values_and_indices)
+
+    top_values_and_indices = sum(indices_of_largest_values_per_channel, [])
+    sorted_top_values_and_indices = sorted(
+        top_values_and_indices, key=lambda i: i[0], reverse=True
+    )
     top_index = sorted_top_values_and_indices[0][1]
     erp_fp1_path = f"{result_dir}/{sex}_{top_index+1}_electrode_average_EEG_Fp1.png"
     erp_fp2_path = f"{result_dir}/{sex}_{top_index+1}_electrode_average_EEG_Fp2.png"
@@ -158,6 +164,34 @@ def recommend_celebrity(
     combined_image_path = f"{result_dir}/recommendation.png"
     combined_image.save(combined_image_path)
     combined_image.show()
+
+
+def recommend_combination(
+    avg_evoked_list: List[np.ndarray], 
+    times_list: List[np.ndarray], 
+    channels: List[str], 
+    image_folder: str, 
+    clothes_type: str,
+) -> None:
+    max_values_per_channel = []
+
+    top_recommendations = []
+
+    top_indices = [t[1] + 1 for t in top_recommendations]
+    if clothes_type == "bottoms":
+        for index in top_indices:
+            print(f"당신이 끌리는 하의 조합은 {index}번 하의입니다.")
+            image_filename = f"{image_folder}/B{index}.jpg"
+            image = Image.open(image_filename)
+            image.show()
+    elif clothes_type == "shoes":
+        for index in top_indices:
+            print(f"당신이 끌리는 신발의 조합은 {index}번 신발입니다.")
+            image_filename = f"{image_folder}/S{index}.jpg"
+            image = Image.open(image_filename)
+            image.show()
+    else:
+        raise ValueError("Invalid clothes type")
 
 
 def recommend_direction_and_moment(
