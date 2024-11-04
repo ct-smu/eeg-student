@@ -28,25 +28,26 @@ class AnalyzeEEG:
         tmin: float = -0.2,
         tmax: float = 1.0,
     ) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], List[np.ndarray]]:
-        # Check result directory
+        # 결과 디렉토리 확인 및 생성
         if not os.path.isdir(result_dir):
             os.makedirs(result_dir)
 
-        # Read eeg and events
+        # EEG 데이터 및 이벤트 파일 읽기
         eeg, eeg_times = self.preprocess_eeg.read_eeg(eeg_filename)
-        eeg = self.preprocess_eeg.normalize(eeg)  # Normalize
+        eeg = self.preprocess_eeg.normalize(eeg)  # EEG 데이터 정규화
         events = self.preprocess_eeg.read_events(event_filename)
 
-        # Synchronize time interval
+        # 시간 동기화
         eeg_start_tm = eeg_filename.split("_")[-1].replace(".csv", "")
         event_start_tm = event_filename.split("_")[-1].replace(".csv", "")
         events = self.preprocess_eeg.synchronize_time_interval(
             events, eeg_start_tm, event_start_tm
         )
 
-        # Apply filter (1-30 Hz)
+        # 주파수 필터 적용 (1-30 Hz)
         self.preprocess_eeg.filter(eeg, lowcut=lowcut, highcut=highcut)
 
+        # ERP 분석: 각 이벤트 유형에 대해 평균 유발 전위 계산
         avg_evoked_list = []
         times_list = []
         for i in range(1, num_types + 1):
@@ -55,7 +56,10 @@ class AnalyzeEEG:
             )
             avg_evoked_list.append(avg_evoked)
             times_list.append(times)
+
+        # 결과 반환 (EEG 데이터, 시간 정보, ERP 평균 및 시간 리스트)
         return eeg, eeg_times, avg_evoked_list, times_list
+
 
     def analyze_erp_range(
         self,

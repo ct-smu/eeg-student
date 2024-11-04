@@ -41,24 +41,26 @@ def recommend_celebrity(
         "아이유",
         "윤아"
     ]
+    # 각 채널의 최대값을 저장할 리스트 초기화
     max_values_per_channel = []
+    # 각 채널에 대해
     for channel_idx in range(len(channels)):
         max_values = []
+        # 각 이미지에 대해
         for num_images in range(len(times_list)):
+            # 0.1초~0.5초 사이의 시간 인덱스 추출
             selected_indices = [
-                index
-                for index, value in enumerate(times_list[num_images])
-                if 0.1 <= value <= 0.5
+                index for index, value in enumerate(times_list[num_images]) if 0.1 <= value <= 0.5
             ]
             start_index = selected_indices[0]
             end_index = selected_indices[-1]
 
-            max_value = max(
-                avg_evoked_list[num_images][channel_idx][start_index : end_index + 1]
-            )
+            # 최대값 추출하여 리스트에 추가
+            max_value = max(avg_evoked_list[num_images][channel_idx][start_index: end_index + 1])
             max_values.append(max_value)
         max_values_per_channel.append(max_values)
 
+    # 각 채널의 최대값 상위 3개 인덱스 추출
     indices_of_largest_values_per_channel = []
     for channel in range(len(max_values_per_channel)):
         indices_of_largest_values = sorted(
@@ -66,101 +68,73 @@ def recommend_celebrity(
             key=lambda i: max_values_per_channel[channel][i],
             reverse=True,
         )[:3]
-        largest_values = [
-            max_values_per_channel[channel][i] for i in indices_of_largest_values
-        ]
+        largest_values = [max_values_per_channel[channel][i] for i in indices_of_largest_values]
         top_values_and_indices = [
-            (value, index)
-            for value, index in zip(largest_values, indices_of_largest_values)
+            (value, index) for value, index in zip(largest_values, indices_of_largest_values)
         ]
         indices_of_largest_values_per_channel.append(top_values_and_indices)
 
+    # 상위 3개 값을 기준으로 최종 인덱스 결정
     top_values_and_indices = sum(indices_of_largest_values_per_channel, [])
     sorted_top_values_and_indices = sorted(
         top_values_and_indices, key=lambda i: i[0], reverse=True
     )
     top_index = sorted_top_values_and_indices[0][1]
-    erp_fp1_path = f"{result_dir}/{sex}_{top_index+1}_electrode_average_EEG_Fp1.png"
-    erp_fp2_path = f"{result_dir}/{sex}_{top_index+1}_electrode_average_EEG_Fp2.png"
-    # Let"s start fresh and simply vertically stack the 2nd and 3rd images as requested by the user.
 
-    # Reload the EEG images
+    # EEG 이미지 파일 경로 정의
+    erp_fp1_path = f"{result_dir}/{sex}_{top_index + 1}_electrode_average_EEG_Fp1.png"
+    erp_fp2_path = f"{result_dir}/{sex}_{top_index + 1}_electrode_average_EEG_Fp2.png"
     erp_fp1_plot = Image.open(erp_fp1_path)
     erp_fp2_plot = Image.open(erp_fp2_path)
 
-    # Create a new image with the combined height of the two EEG images and the width of the widest one
+    # 두 EEG 이미지를 수직으로 결합
     vertical_combined_height = erp_fp1_plot.height + erp_fp2_plot.height
     vertical_combined_width = max(erp_fp1_plot.width, erp_fp2_plot.width)
-
-    # Create a new image with a black background
     vertical_combined_image = Image.new("RGB", (vertical_combined_width, vertical_combined_height), "black")
-
-    # Paste the first EEG image at the top
     vertical_combined_image.paste(erp_fp1_plot, (0, 0))
-
-    # Paste the second EEG image directly below the first
     vertical_combined_image.paste(erp_fp2_plot, (0, erp_fp1_plot.height))
-
-    # Save the vertically combined image
     vertical_combined_image_path = f"{result_dir}/erp_combined.png"
     vertical_combined_image.save(vertical_combined_image_path)
 
-    # Load images
+    # 사용자의 성별에 따라 연예인 이미지 및 텍스트 결정
     if sex == "males":
-        celebrity_path = f"{image_folder}/M{top_index+1}.jpg"
+        celebrity_path = f"{image_folder}/M{top_index + 1}.jpg"
         text = f"당신이 끌리는 연예인은 {male_celebrities[top_index]}입니다."
     elif sex == "females":
-        celebrity_path = f"{image_folder}/F{top_index+1}.jpg"
+        celebrity_path = f"{image_folder}/F{top_index + 1}.jpg"
         text = f"당신이 끌리는 연예인은 {female_celebrities[top_index]}입니다."
     else:
         raise ValueError("Invalid sex")
-    erp_combined_path = f"{result_dir}/erp_combined.png"
+
+    # 최종 이미지 생성 (연예인 이미지와 EEG 결합 이미지)
     celebrity_image = Image.open(celebrity_path)
     erp_combined_plot = Image.open(erp_combined_path)
-
-    # Determine the new width and height for the combined image
     new_width = max(celebrity_image.width + erp_combined_plot.width, screen_width)
     new_height = max(celebrity_image.height, erp_combined_plot.height, screen_height)
-
-    # Create a new image with the determined dimensions and black background
     combined_image = Image.new("RGB", (new_width, new_height), color="black")
 
-    # Calculate the position for the first image (left)
+    # 좌측에 연예인 이미지, 우측에 EEG 결합 이미지 배치
     x_offset = int((new_width - (celebrity_image.width + erp_combined_plot.width)) / 2)
     y_offset = int((new_height - celebrity_image.height) / 2)
-
-    # Paste the first image onto the combined image
     combined_image.paste(celebrity_image, (x_offset, y_offset))
-
-    # Calculate the position for the second image (right)
     x_offset += celebrity_image.width
-
-    # Paste the second image onto the combined image
     combined_image.paste(erp_combined_plot, (x_offset, y_offset))
 
-    # Add text to the combined image
+    # 텍스트 추가
     draw = ImageDraw.Draw(combined_image)
-    font_size = 50  # Starting font size
+    font_size = 50
     font_path = "C:/Windows/Fonts/batang.ttc"
     font = ImageFont.truetype(font_path, font_size)
-
-    # Calculate the width and height of the text to be added
     text_width, text_height = draw.textsize(text, font=font)
-
-    # While the text width is too large, reduce the font size
     while text_width > new_width and font_size > 10:
         font_size -= 1
         font = ImageFont.truetype(font_path, font_size)
         text_width, text_height = draw.textsize(text, font=font)
-
-    # Calculate the position for the text
     text_x = (new_width - text_width) / 2
-    text_y = 10  # A small padding from the top
-
-    # Draw the text onto the combined image
+    text_y = 10
     draw.text((text_x, text_y), text, font=font, fill="white")
 
-    # Save the combined image
+    # 최종 이미지 저장 및 표시
     combined_image_path = f"{result_dir}/recommendation.png"
     combined_image.save(combined_image_path)
     combined_image.show()

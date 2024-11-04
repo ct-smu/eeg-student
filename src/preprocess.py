@@ -92,41 +92,44 @@ class PreprocessEEG:
         tmin: float, 
         tmax: float,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        evoked = []
-        times = []
-        tmin_idx = tmin * self.fs
-        tmax_idx = tmax * self.fs
+        evoked = []  # 이벤트 별 ERP 데이터를 저장할 리스트
+        times = []  # 시간 인덱스를 저장할 리스트
+        tmin_idx = tmin * self.fs  # 최소 시간에 해당하는 인덱스
+        tmax_idx = tmax * self.fs  # 최대 시간에 해당하는 인덱스
 
-        # Create time indices
+        # 시간 인덱스 생성
         for i in range(int((tmax - tmin) * self.fs) + 1):
-            time = np.round(tmin + (i * 1.0 / self.fs), 2)
+            time = np.round(tmin + (i * 1.0 / self.fs), 2)  # 소수점 둘째 자리까지 시간 계산
             times.append(time)
 
-        # Loop for events
+        # 각 이벤트에 대해
         for event in events:
-            # Check event id
-            id = event[2]
-            if id != event_id:
+            id = event[2]  # 이벤트 ID
+            if id != event_id:  # 특정 ID와 일치하지 않는 경우 건너뜀
                 continue
 
-            # Calculate index
+            # 인덱스 계산
             idx = int(event[0] / 1000.0 * self.fs)
-            start_idx = int(idx + tmin_idx)
-            end_idx = int(idx + tmax_idx)
+            start_idx = int(idx + tmin_idx)  # 시작 인덱스
+            end_idx = int(idx + tmax_idx)    # 종료 인덱스
+
+            # 시작 및 종료 인덱스 조정
             if start_idx < 0:
                 start_idx = 0
             if end_idx > len(eeg[0]):
                 break
 
-            # Crop evoked based on event
+            # 이벤트에 따른 ERP 데이터 추출
             erp = eeg[:, start_idx:end_idx]
 
-            # Add to evoked
+            # 정해진 길이의 ERP 데이터만 추가
             if len(erp[0]) == end_idx - start_idx:
                 evoked.append(erp)
-        # Average
+
+        # ERP 데이터의 평균값 계산
         avg_evoked = np.average(evoked, axis=0)
 
+        # 평균 ERP 데이터와 시간 인덱스 반환
         return avg_evoked, times
 
     def filter(
