@@ -169,16 +169,52 @@ def recommend_combination(
 
 
 def recommend_direction_and_moment(
-    avg_evoked_list: List[np.ndarray], 
-    times_list: List[np.ndarray], 
-    channels: List[str], 
-    result_dir: str,
+        avg_evoked_list: List[np.ndarray],
+        times_list: List[np.ndarray],
+        channels: List[str],
+        result_dir: str,
 ) -> None:
     erd_peak_index_per_channel = []
+    for channel_idx in range(len(channels)):
+        for num_images in range(len(times_list)):
+            erd_selected_indices = [
+                index
+                for index, value in enumerate(times_list[num_images])
+                if 0.0 <= value <= 0.5
+            ]
+            erd_start_index = erd_selected_indices[0]
+            erd_end_index = erd_selected_indices[-1]
+            erd_peak_point = np.argmin(
+                avg_evoked_list[num_images][channel_idx][erd_start_index: erd_end_index + 1]
+            )
+            erd_peak_index = erd_selected_indices[erd_peak_point]
+        erd_peak_index_per_channel.append(erd_peak_index)
 
-    dominant_channel_index = []
-    point_of_operation = 0.0
-    
+    ers_peak_index_per_channel = []
+    ers_summation_per_channel = []
+    for channel_idx in range(len(channels)):
+        for num_images in range(len(times_list)):
+            ers_selected_indices = [
+                index
+                for index, value in enumerate(times_list[num_images])
+                if times_list[num_images][erd_peak_index_per_channel[channel_idx]] <= value <= times_list[num_images][
+                    erd_peak_index_per_channel[channel_idx]] + 0.5
+            ]
+            ers_start_index = ers_selected_indices[0]
+            ers_end_index = ers_selected_indices[-1]
+            ers_peak_point = np.argmax(
+                avg_evoked_list[num_images][channel_idx][ers_start_index: ers_end_index + 1]
+            )
+            ers_peak_index = ers_selected_indices[ers_peak_point]
+            ers_summation = avg_evoked_list[num_images][channel_idx][ers_start_index: ers_end_index + 1].sum()
+        ers_peak_index_per_channel.append(ers_peak_index)
+        ers_summation_per_channel.append(ers_summation)
+
+    dominant_channel_index = ers_summation_per_channel.index(max(ers_summation_per_channel))
+    point_of_operation_index = int(
+        erd_peak_index_per_channel[dominant_channel_index] * 0.25 + ers_peak_index_per_channel[
+            dominant_channel_index] * 0.75)
+    point_of_operation = times_list[0][point_of_operation_index]
     if dominant_channel_index == 0:
         direction = "right"
     elif dominant_channel_index == 1:
@@ -186,7 +222,7 @@ def recommend_direction_and_moment(
     else:
         raise ValueError("Invalid channel index")
     moment = f"{float(point_of_operation):.2f}"
-    direction_and_moment = {"direction" : [direction], "moment(s)" : [moment]}
+    direction_and_moment = {"direction": [direction], "moment(s)": [moment]}
     result_df = pd.DataFrame(direction_and_moment)
     result_df.to_csv(f"{result_dir}/result.csv", index=False)
 
